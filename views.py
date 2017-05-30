@@ -76,8 +76,8 @@ def login():
 
 @app.route('/api/v1.0/bucketlists/', methods=['GET'])
 def get_bucketlists():
-    # return jsonify({'bucketlists': bucketlists})
-    return jsonify({'bucketlists': [make_public_task(bucketlist) for bucketlist in bucketlists]})
+    return jsonify({'bucketlists': bucketlists})
+    # return jsonify({'bucketlists': [make_public_task(bucketlist) for bucketlist in bucketlists]})
 
 @app.route('/api/v1.0/bucketlists/', methods=['POST'])
 def add_bucketlist():
