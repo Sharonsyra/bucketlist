@@ -1,36 +1,22 @@
+from passlib.apps import custom_app_context as pwd_context
+import datetime, jwt
+
 from run import db
 
 class User(db.Model):
-
-    __tablename__ = 'user'
+    """ User Model for storing user related details """
+    __tablename__ = "user"
 
     id = db.Column(db.Integer, primary_key = True)
-    username = db.Column(db.String(20), nullable = False)
-    password = db.Column(db.String(20), nullable = False)
-    bucketlists = db.relationship('Bucketlist', backref='user',
-                                  cascade='all,delete', lazy='dynamic')
+    username = db.Column(db.String(32), index = True)
+    password_hash = db.Column(db.String(128))
 
-    def __init__(self, username, email, password):
-        self.username = username
-        self.email = email
-        self.hashed_password(password)
 
-    def hashed_password(self, new_password):
-        """
-        Hashes the new entered password
-        """
-        self.password = generate_password_hash(new_password)
+    def hash_password(self, password):
+        self.password_hash = pwd_context.encrypt(password)
 
-    
-    def generate_token(self, expiration = 1200):
-        """
-        generates token
-        """
-        serialize = Serialize(app.config['SECRET_KEY'], expire_time = expiration)
-        return serialize.dumps({'id': self.id})
-
-    def __repr__(self):
-        return '<User {}>'.format(self.username)
+    def verify_password(self, password):
+        return pwd_context.verify(password, self.password_hash)
 
 
 

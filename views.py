@@ -1,11 +1,18 @@
 from random import randint
-
 from flask import request, Flask, jsonify, abort, make_response, url_for
+from flask_httpauth import HTTPBasicAuth
 
 from models import User, BucketList, Item
 from run import db
+from config import DevelopmentConfig
 
 app = Flask(__name__)
+auth = HTTPBasicAuth()
+
+# app.config.from_object(DevelopmentConfig)
+
+db.create_all()
+db.session.commit()
 
 bucketlists =[
 {
@@ -68,12 +75,43 @@ def make_public_task(bucketlist):
 
 @app.route('/api/v1.0/auth/register', methods=['POST'])
 def register():
-    pass
+    username = request.json.get('username')
+    password = request.json.get('password')
+    if username is None or password is None:
+        abort(400) # missing username or password
+    if User.query.filter_by(username = username).first() is not None:
+        abort(400) # existing user
+    user = User(username = username)
+    user.hash_password(password)
+    db.session.add(user)
+    db.session.commit()
+    return jsonify({ 'username': user.username }), 201, {'Location': url_for('get_user', id = user.id, _external = True)}
+
+@app.route('/api/v1.0/auth/register/<int:id>')
+def get_user(id):
+    user = User.query.get(id)
+    if not user:
+        abort(400)
+    return jsonify({'username': user.username})
 
 @app.route('/api/v1.0/auth/login', methods=['POST'])
 def login():
     pass
 
+@auth.verify_password
+def verify_password(username, password):
+    user = User.query.filter_by(username = username).first()
+    if not user or not user.verify_password(password):
+        return False
+    g.user = user
+    return True
+
+@app.route('/api/resource')
+@auth.login_required
+def get_resource():
+    return jsonify({ 'data': 'Hello, %s!' % g.user.username })
+    
+@auth.login_required
 @app.route('/api/v1.0/bucketlists/', methods=['GET'])
 def get_bucketlists():
     # return jsonify({'bucketlists': bucketlists})
